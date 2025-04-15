@@ -5,5 +5,4 @@ node_modules
 dist
 
 #ignore all dir .cache
-
-.cache
+.cache/
