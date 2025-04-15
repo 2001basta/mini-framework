@@ -4,6 +4,6 @@ node_modules
 #ignore dir dist
 dist
 
-#ignore all files have .cache
+#ignore all dir .cache
 
-*.cache
+.cache
