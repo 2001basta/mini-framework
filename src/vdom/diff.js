@@ -1,74 +1,98 @@
 import render from "./render"
 export default diff
-function diff(oldApp, newApp){
-    if (typeof newApp === 'undefined'){
-        return (node)=>{
+function diff(oldApp, newApp) {
+    if (typeof newApp === 'undefined') {
+        return (node) => {
             node.remove()
             return newApp
         }
     }
-    if (typeof newApp ==="string" || typeof oldApp === "string"){
-        if (newApp != oldApp){
-            return (node)=> {
-                const renderNod= render(newApp)
+    if (typeof newApp === "string" || typeof oldApp === "string") {
+        if (newApp != oldApp) {
+            return (node) => {
+                const renderNod = render(newApp)
                 node.replaceWith(renderNod)
                 return renderNod
             }
         }
-        return (node)=> undefined
+        return (node) => undefined
     }
-    if (oldApp.tagName != newApp.tagName){
-        return (node)=> {
-            const renderNod= render(newApp)
+    if (oldApp.tagName != newApp.tagName) {
+        return (node) => {
+            const renderNod = render(newApp)
             node.replaceWith(renderNod)
             return renderNod
         }
     }
-    const changAttr = difAttrs(oldApp.attrs,newApp.attrs)
-    // const changChild = difChildrens(oldApp.children,newApp.children)
-    return (node)=>{
+    const changAttr = difAttrs(oldApp.attrs, newApp.attrs)
+    const changChild = difChildrens(oldApp.children, newApp.children)
+    return (node) => {
         changAttr(node)
-        return render(newApp)
+        return changChild(node)
     }
 }
 
-function difAttrs(oldAttrs, newAttrs){
+function difAttrs(oldAttrs, newAttrs) {
     const funcs = []
-   
-    for (const k in oldAttrs){
-        if (!(k in newAttrs))
+
+    for (const k in oldAttrs) {
+        if (!(k in newAttrs)) {
+            funcs.push(
+                (node) => {
+                    node.removeAttribute(k)
+                    return node
+                }
+            )
+        }
+    }
+
+    for (const [k, v] of Object.entries(newAttrs)) {
         funcs.push(
-            (node)=>{
-                node.removeAttribute(k)
+            (node) => {
+                node.setAttribute(k, v)
                 return node
             }
         )
     }
-    
-    for (const [k,v] of Object.entries(newAttrs)){
-        funcs.push(
-            (node)=>{
-                node.setAttribute(k,v)
-                return node
-            }
-        )
-    }
-    return (node)=>{
-        for (let func of funcs){
+    return (node) => {
+        for (let func of funcs) {
             func(node)
         }
     }
 }
 
-function difChildrens(oldChild, newChild){
+function difChildrens(oldChild, newChild) {
     const funcs = []
-    for (let x in oldChild){
-        if (!(newChild[x])){
-            funcs.push((node)=> {
-                const renderNod= render(newChild[x])
-                node.removeChild(renderNod)
-                return node
+    let x = 0
+    let isbreaked = false
+    for (x in newChild) {
+        if (!oldChild[x]) {
+            isbreaked = true
+            break
+        }
+        funcs.push(diff(oldChild[x], newChild[x]))
+    }
+    const newfuncs = []
+    if (isbreaked) {
+        while (x < newChild.length) {
+            newfuncs.push((node) => {
+                node.appendChild(render(newChild[x]))
             })
+            x++
         }
     }
+    return (node) => {
+
+        for (let i in funcs) {
+            if (!node.children[i]) {
+                break
+            }
+            funcs[i](node.children[i])
+        }
+        for (let func of newfuncs) {
+            func(node)
+        }
+        return node
+    }
+
 }
